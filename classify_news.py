@@ -7,10 +7,10 @@ from nltk.corpus import stopwords
 import sd_algorithm
 
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.preprocessing.text import Tokenizer
 import pickle
 import nltk
 
+df = pd.read_csv("mined_news_content2.csv")
 
 sd = sd_algorithm.SDAlgorithm()
 
@@ -87,16 +87,28 @@ st.markdown(html_temp, unsafe_allow_html=True)
 
 result = ""
 r = ""
-url = st.text_input("Enter the URL of the article", "")
+related = []
+url = st.text_input("Fill in the field below", "")
 
 if st.button("Classify news category"):
     result = predict_news(url)
     if result == [0]:
         r = 'Business'
+        related = df[df['category']=='business']["url"]
     elif result == [1]:
         r = 'Entertainment'
+        related = df[df['category']=='entertainment']["url"]
     elif result == [2]:
         r = 'Politics'
+        related = df[df['category']=='politics']["url"]
     elif result == [3]:
         r = 'Sports'
+        related = df[df['category']=='sports']["url"]
 st.success('The predicted category of the article is: {}'.format(r))
+html_temp = """
+<div style="background-color:grey;padding:6px">
+<h6 style="color:white;">Other related articles</h3>
+</div>
+"""
+st.markdown(html_temp, unsafe_allow_html=True)
+st.write(related)
