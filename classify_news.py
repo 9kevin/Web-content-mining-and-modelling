@@ -99,4 +99,4 @@ if st.button("Classify news category"):
         r = 'Politics'
     elif result == [3]:
         r = 'Sports'
-st.success('The predicted category of the article is: {}'.format(result))
+st.success('The predicted category of the article is: {}'.format(r))
