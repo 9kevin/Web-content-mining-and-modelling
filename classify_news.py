@@ -69,9 +69,9 @@ def clean_texts(text):
 
 def predict_news(url):
     content = get_content(url)
-    content = clean_texts(content[0])
+    content = clean_texts(listToString(content[3]))
     encoded_text = tokenizer.texts_to_sequences([content])
-    max_length = 10
+    max_length = 2
     padded_text = pad_sequences(encoded_text, maxlen=max_length, padding='post')
     y_pred = model.predict(padded_text)
     return y_pred
