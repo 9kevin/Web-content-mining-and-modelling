@@ -2,13 +2,14 @@ import streamlit as st
 import pandas as pd
 import re
 import string
+import nltk
 from html.parser import HTMLParser
 from nltk.corpus import stopwords
 import sd_algorithm
 
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import pickle
-import nltk
+
 
 df = pd.read_csv("mined_news_content2.csv")
 
