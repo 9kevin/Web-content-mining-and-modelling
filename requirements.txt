@@ -3,7 +3,7 @@ numpy
 re
 string
 html
-nltk
+nltk==3.5
 tensorflow
 sd_algorithm
 pickle
