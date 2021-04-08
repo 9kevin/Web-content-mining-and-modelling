@@ -2,8 +2,9 @@ import streamlit as st
 import pandas as pd
 import re
 import string
-import nltk
 nltk.download('punkt')
+import nltk
+
 from html.parser import HTMLParser
 from nltk.corpus import stopwords
 import sd_algorithm
