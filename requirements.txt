@@ -1,0 +1,9 @@
+pandas 
+numpy
+re
+string
+html
+nltk
+tensorflow
+sd_algorithm
+pickle
