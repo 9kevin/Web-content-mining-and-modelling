@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas_datareader as web
 import tensorflow as tf
 import datetime as dt
