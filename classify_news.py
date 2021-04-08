@@ -2,16 +2,12 @@ import streamlit as st
 import pandas as pd
 import re
 import string
-nltk.download('punkt')
-import nltk
-
 from html.parser import HTMLParser
-from nltk.corpus import stopwords
 import sd_algorithm
 
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import pickle
-
+import nltk
 
 df = pd.read_csv("mined_news_content2.csv")
 
@@ -52,17 +48,9 @@ def clean_texts(text):
           text = text.replace(key, value)
   # Convert to lower case
   text = text.lower()
-  # Removing stopwords
-  nltk.download('stopwords')
-  stopwords_eng = stopwords.words('english') 
-  text_tokens = text.split()
-  text_list=[]
-  for word in text_tokens:
-      if word not in stopwords_eng:
-          text_list.append(word)
   # Remove punctuations
   clean_text = []
-  for word in text_list:
+  for word in text:
       if word not in string.punctuation:
           clean_text.append(word)
 
