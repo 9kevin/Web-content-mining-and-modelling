@@ -1,73 +1,114 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import pandas_datareader as web
-import tensorflow as tf
-import datetime as dt
-import plotly.express as px
-from sklearn.preprocessing import MinMaxScaler
+import re
+import string
+from html.parser import HTMLParser
+from nltk.corpus import stopwords
+import sd_algorithm
 
-model = tf.keras.models.load_model("stock_model.sav")
-scaler = MinMaxScaler(feature_range=(0,1))
-companyName = 'FB'
-startDate = dt.datetime(2010,1,1)
-endDate = dt.datetime(2020,1,1)
-data = web.DataReader(companyName, 'yahoo', startDate, endDate)
-scaled_data = scaler.fit_transform(data['Close'].values.reshape(-1, 1))
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+import pickle
+import nltk
 
-@st.cache
-def load_data():
-  
-  prediction_days = 60
-  test_start = dt.datetime(2020,1,2)
-  test_end = dt.datetime.now()
-  test_data = web.DataReader(companyName, 'yahoo', test_start, test_end)
-  columns = test_data.columns
+df = pd.read_csv("mined_news_content2.csv")
 
-  # Preprocess data
-  actual_prices = test_data['Close'].values
-  full_dataset = pd.concat((data['Close'], test_data['Close']), axis=0)
-  model_inputs = full_dataset[len(full_dataset) - len(test_data) - prediction_days:].values
-  model_inputs = model_inputs.reshape(-1, 1)
-  model_inputs = scaler.transform(model_inputs)
+sd = sd_algorithm.SDAlgorithm()
 
-  # Preparing data for predicting the next day
-  real_data = np.array([model_inputs[len(model_inputs)+1-prediction_days : len(model_inputs+1), 0]])
-  real_data = np.reshape(real_data, (real_data.shape[0], real_data.shape[1], 1))
-  return actual_prices, test_data, columns, real_data
+# Loading the model
+pickle_in = open("newspaper_model.sav", "rb")
+model = pickle.load(pickle_in)
 
-def predict_stock(real_data):
-  predict = [[264.9187]]
-  try:
-    predict = model.predict(real_data)
-  except ValueError:
-    pass  # do nothing
-  prediction_scaled = scaler.inverse_transform(predict)
-  return prediction_scaled
+# Loading the tokenizer
+pickle_n = open("tokenizer.pickle", "rb")
+tokenizer = pickle.load(pickle_n)
+
+# Function to get news content from url
+def get_content(url):
+    sd.url = url
+    text = sd.analyze_page()
+    return text
+
+# Function turning a list into a string
+def listToString(s): 
+    str1 = " "   
+    return (str1.join(s))
+
+# Function to clean texts
+def clean_texts(text):
+  # Removing html characters
+  text = HTMLParser().unescape(text)
+  # Removing urls and hashtags
+  text = re.sub(r'https?:\/\/.\S+', "", text)
+  text = re.sub(r'#', '', text)
+  text = re.sub(r'^RT[\s]+', '', text)
+  # Contradiction replacement
+  dictionary={"'s":" is","n't":" not","'m":" am","'ll":" will",
+           "'d":" would","'ve":" have","'re":" are"}
+  for key,value in dictionary.items():
+      if key in text:
+          text = text.replace(key, value)
+  # Convert to lower case
+  text = text.lower()
+  # Removing stopwords
+  nltk.download('stopwords')
+  stopwords_eng = stopwords.words('english') 
+  text_tokens = text.split()
+  text_list=[]
+  for word in text_tokens:
+      if word not in stopwords_eng:
+          text_list.append(word)
+  # Remove punctuations
+  clean_text = []
+  for word in text_list:
+      if word not in string.punctuation:
+          clean_text.append(word)
+
+  # Turning the list of words into a single string
+  clean_text = listToString(clean_text)
+  return clean_text
+
+def predict_news(url):
+    content = get_content(url)
+    content = clean_texts(listToString(content[3]))
+    encoded_text = tokenizer.texts_to_sequences([content])
+    max_length = 2
+    padded_text = pad_sequences(encoded_text, maxlen=max_length, padding='post')
+    y_pred = model.predict(padded_text)
+    return y_pred
 
 
-actual_prices, data, columns, real_data = load_data()
-st.title("Predict Facebook Stock Prices")
+st.title("Classify News Category")
 html_temp = """
 <div style="background-color:tomato;padding:10px">
-<h3 style="color:white;">We help you predict the Facebook closing stock price for the next day</h3>
+<h3 style="color:white;">Insert the link to the article, and I'll do the rest of the magic..</h3>
 </div>
 """
 st.markdown(html_temp, unsafe_allow_html=True)
 
-check_box = st.sidebar.checkbox(label="Display the dataset")
-st.sidebar.title("Options")
-if check_box:
-  st.write(data)
-
-feature_selection = st.sidebar.multiselect(label="Select the features you want to visualize", options=columns)
-if feature_selection:
-  df_feature = data[feature_selection]
-  plotly_figure = px.line(data_frame=data, x=df_feature.index, y=feature_selection, title=('Facebook Stock Prices'))
-  st.plotly_chart(plotly_figure)
-
+result = ""
 r = ""
-if st.button("Predict the stock market closing value for tomorrow"):
-    result = predict_stock(real_data)
-    r = result[0][0]
-st.success('The closing stock price for facebook is predicted to be : {}'.format(r))
+related = []
+url = st.text_input("Fill in the field below", "")
+
+if st.button("Classify news category"):
+    result = predict_news(url)
+    if result == [0]:
+        r = 'Business'
+        related = df[df['category']=='business']["url"]
+    elif result == [1]:
+        r = 'Entertainment'
+        related = df[df['category']=='entertainment']["url"]
+    elif result == [2]:
+        r = 'Politics'
+        related = df[df['category']=='politics']["url"]
+    elif result == [3]:
+        r = 'Sports'
+        related = df[df['category']=='sports']["url"]
+st.success('The predicted category of the article is: {}'.format(r))
+html_temp = """
+<div style="background-color:grey;padding:6px">
+<h6 style="color:white;">Other related articles</h3>
+</div>
+"""
+st.markdown(html_temp, unsafe_allow_html=True)
+st.write(related)
